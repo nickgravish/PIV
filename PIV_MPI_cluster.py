@@ -71,7 +71,7 @@ if __name__ == '__main__':
         start_time = time.time()
 
         #
-        print(process_list)
+        # print(process_list)
 
         frame_a = np.array(Image.open(os.path.join(vidpath, tif_files[0])));
         frame_b = np.array(Image.open(os.path.join(vidpath, tif_files[1])));
