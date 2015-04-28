@@ -58,15 +58,13 @@ if __name__ == '__main__':
 # Master process
     if rank == 0:
 
-        print "rank == 0 \n"
-        print name
+        print "rank == 0 : " + name "\n"
+        
         # parse input folder to be processed
 
 # slave processes
     else:
         print 'rank = %d ' % MPI.COMM_WORLD.Get_rank()
-        
-
 
 
 MPI.Finalize()
