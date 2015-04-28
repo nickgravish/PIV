@@ -58,7 +58,7 @@ if __name__ == '__main__':
 # Master process
     if rank == 0:
 
-        print "rank == 0 : " + name "\n"
+        print "rank == 0 : " + name 
         
         # parse input folder to be processed
 
