@@ -13,6 +13,7 @@ import sys
 import scipy.io as sio
 from PIL import Image
 import pypar as pp
+import warnings
 
 num_processors = pp.size()
 rank = pp.rank()
@@ -46,18 +47,19 @@ def PIVCompute(frame_a, frame_b, window_size = 24, overlap = 12):
 # main part of code
 
 if __name__ == '__main__':
-    
+    warnings.filterwarnings("ignore")
+
     vidpath = sys.argv[1]
     foldername = os.getcwd().split('/')[-1]
 
     tif_files = [f for f in os.listdir(vidpath) if f.endswith('.tif')]
 
 # !!!! DEBUG
-    tif_files = tif_files[:10]
+    tif_files = tif_files[0:10]
 
 
 # Create list of file pairs to process
-    process_list = zip(range(0,len(tif_files)), range(DeltaT,len(tif_files)-DeltaT))
+    process_list = zip(range(0,len(tif_files)-DeltaT), range(DeltaT,len(tif_files)))
     work_size = len(process_list)
     
     # Dispatch jobs to worker processes
@@ -66,6 +68,10 @@ if __name__ == '__main__':
 
     # Master process
     if rank == MASTER_PROCESS:
+        start_time = time.time()
+
+        #
+        print(process_list)
 
         frame_a = np.array(Image.open(os.path.join(vidpath, tif_files[0])));
         frame_b = np.array(Image.open(os.path.join(vidpath, tif_files[1])));
@@ -78,34 +84,54 @@ if __name__ == '__main__':
         u = np.zeros((work_size, x.shape[0], x.shape[1]))
         v = np.zeros((work_size, x.shape[0], x.shape[1]))
 
+        # make list of sources and the tasks sent to them
+        source_list = np.zeros(num_processors)
+
         # Start all worker processes
-        for i in range(1, min(num_processors, work_size)):
-            pp.send(work_index, i, tag=WORK_TAG)
-            pp.send(process_list[work_index], i)
-            print "Sent process list " + str(process_list[i]) + " to processor " + str(i)
+        for i in range(0, min(num_processors-1, work_size)):
+
+            proc = i+1
+            source_list[proc] = work_index
+
+            pp.send(work_index, proc, tag=WORK_TAG)
+            pp.send(process_list[i], proc)
+            print "Sent process list " + str(process_list[i]) + " to processor " + str(proc)
+
             work_index += 1
 
         # Receive results from each worker, and send it new data
-        for i in range(num_processors, work_size):
+        for i in range(num_processors-1, work_size):
             results, status = pp.receive(source=pp.any_source, tag=pp.any_tag, return_status=True)
-            index = status.tag
-
+            proc = status.source
+            
+            index = source_list[proc]
+            print "index is " + str(index) + " from process " + str(proc) 
+            
             # receive and parse the resulting var
             u[index,:,:] = results[0,:,:]
             v[index,:,:] = results[1,:,:]
-
-            proc = status.source
-            num_completed += 1
-            work_index += 1
+            
+            # re-up workers
             pp.send(work_index, proc, tag=WORK_TAG)
             pp.send(process_list[work_index], proc)
+            source_list[proc] = work_index
+            
             print "Sent work index " + str(work_index) + " to processor " + str(proc)
 
-        # Get results from remaining worker processes
-        while num_completed < work_size-1:
-            results, status = pp.receive(source=pp.any_source, tag=pp.any_tag, return_status=True)
-            index = status.tag
+            # increment work_index
+            work_index += 1
+            num_completed += 1
+
             
+        # Get results from remaining worker processes
+        while num_completed < work_size:
+            results, status = pp.receive(source=pp.any_source, tag=pp.any_tag, return_status=True)
+            proc = status.source
+
+            index = source_list[proc]
+
+            print "index is " + str(index)
+
             # receive and parse the resulting var
             u[index,:,:] = results[0,:,:]
             v[index,:,:] = results[1,:,:]
@@ -118,9 +144,12 @@ if __name__ == '__main__':
             pp.send(-1, proc, tag=DIE_TAG)
 
         # Package up the results to save, also save all the PIV parameters
-        sio.savemat(os.path.join(os.getcwd(), '../' + 'test.mat'),{'x':x, 'y':y, 'u':u, 'v':v, 
+        sio.savemat(os.path.join(vidpath, '../' + foldername + '__.mat'),{'x':x, 'y':y, 'u':u,                                                        'v': v, 
                                                                     'window_size':window_size,
                                                                     'overlap':overlap})
+        end_time = time.time()
+        print repr(end_time - start_time)
+
 
     else:
         ### Worker Processes ###
@@ -160,71 +189,4 @@ if __name__ == '__main__':
     #### if worker
 
     pp.finalize()
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    # matname = name[:-4] + str('PIV.mat')
-
-    # if(os.path.isfile(matname) == False):
-    #     # load frames
-    #     frames = LoadVideo(name, startframe, NUMFRAMES)
-    #     print frames.shape
-    #     global shared_frames   
- 
-    #     shared_frames = frames
-        
-    #     # Prepare the u and v matrices, compute first frame
-    #     start_time = time.time()
-    #     x, y = openpiv.process.get_coordinates( image_size=frames.shape[1:], window_size=WINDSIZE, overlap=OVERLAP )
-
-    #     # make the list of frame numbers to iterate over in parallel
-    #     process_list = zip(range(0,frames.shape[0]), range(1,frames.shape[0]))
-
-    #     print process_list
-        
-    #     # run the parallel code
-    #     pool = multiprocessing.Pool(processes=PROCESSORS)
-    #     result = pool.map(PIVCompute, process_list)
-    #     result = np.array(result)
-
-
-    #     u = np.zeros(result[:,0,:,:].shape)
-    #     v = np.zeros(result[:,0,:,:].shape)
-
-    #     # log the number of tasks executed
-    #     # while (True):
-    #     #     completed = result._index
-    #     #     if (completed == size(process_list,0)): 
-    #     #         break
-            
-    #     #     print "Waiting for", size(process_list,0)-completed, "tasks to complete..."
-    #     #     sys.stdout.flush()
-    #     #     time.sleep(2)
-        
-
-    #     # compile the results into a numpy format
-    #     result = np.array(result)
-
-    #     for kk in range(result.shape[0]):
-    #         u[kk,:,:] = result[kk,0,:,:]
-    #         v[kk,:,:] = result[kk,1,:,:]
-
-    #     end_time = time.time()
-    #     print repr(end_time - start_time)
-
-    #     # save file
-        
-    #     sio.savemat(matname, {'u':u, 'v':v, 'x':x, 'y':y})
-
-
 
