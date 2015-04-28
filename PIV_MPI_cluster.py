@@ -55,7 +55,7 @@ if __name__ == '__main__':
     tif_files = [f for f in os.listdir(vidpath) if f.endswith('.tif')]
 
 # !!!! DEBUG
-    tif_files = tif_files[0:10]
+    # tif_files = tif_files[0:10]
 
 
 # Create list of file pairs to process
