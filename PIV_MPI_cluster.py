@@ -52,10 +52,14 @@ if __name__ == '__main__':
     vidpath = sys.argv[1]
     foldername = os.getcwd().split('/')[-1]
 
-    tif_files = [f for f in os.listdir(vidpath) if f.endswith('.tif')]
+    print "Vidpath = " + vidpath
+    print "Foldername = " + foldername
+
+    
+    tif_files = sorted([f for f in os.listdir(vidpath) if f.endswith('.tif')]) # Sorted is important on the cluster!
 
 # !!!! DEBUG
-    # tif_files = tif_files[0:10]
+    tif_files = tif_files[0:10]
 
 
 # Create list of file pairs to process
@@ -105,7 +109,7 @@ if __name__ == '__main__':
             proc = status.source
             
             index = source_list[proc]
-            print "index is " + str(index) + " from process " + str(proc) 
+            print "index is " + str(index) + " from process " + str(proc) + " u origin value is " + str(results[0,0,0])
             
             # receive and parse the resulting var
             u[index,:,:] = results[0,:,:]
@@ -130,7 +134,7 @@ if __name__ == '__main__':
 
             index = source_list[proc]
 
-            print "index is " + str(index)
+            print "index is " + str(index) + " from process " + str(proc) + " u origin value is " + str(results[0,0,0])
 
             # receive and parse the resulting var
             u[index,:,:] = results[0,:,:]
@@ -169,13 +173,13 @@ if __name__ == '__main__':
                     return_status=True)
                 work_index = status.tag
                 
-                print  "Received work frame pair " + str(frame_pair)                 
 
                 frame_a = np.array(Image.open(os.path.join(vidpath, tif_files[frame_pair[0]])));
                 frame_b = np.array(Image.open(os.path.join(vidpath, tif_files[frame_pair[1]])));
                 
                 # Code below simulates a task running
                 u, v = PIVCompute(frame_a, frame_b, window_size = window_size, overlap = overlap)
+                print  "Received work frame pair " + str(frame_pair) + " u origin value is " + str(u[0,0])                 
                 
                 # package up into work array
                 work_array = np.zeros((2,u.shape[0], u.shape[1]))
