@@ -1,0 +1,20 @@
+
+
+Before, tried just using multiprocessing library for parallel operation on a single node. did pretty well for smaller size vide, but blew up and overloaded memory for larger videos. 
+
+So I decided to give mpi a try
+
+Some error codes I see
+
+running mpiexec immediately after my modules from bashrc load I see this in my output, followed by a segment fault
+librdmacm: Fatal: no RDMA devices found
+
+ok, i think that the rdma issues may have been from trying to run mpirun from rclogin, trying to run an mpi from sbatch gives different set of erros 
+
+Traceback (most recent call last):
+  File "PIV_MPI_cluster.py", line 55, in <module>
+    tif_files = [f for f in os.listdir(vidpath) if f.endswith('.tif')]
+OSError: [Errno 2] No such file or directory: '~/Data/TandemFanning/5_GoodRuns_140VAmp_105mmLens_Wake15khz/PhaseEffects0_-0.62832_pi_140V_100Hz_23-Apr-2015_1_11/'
+        tif_files = [f for f in os.listdir(vidpath) if f.endswith('.tif')]
+
+potentially I need to use an absolute path for MPI?
