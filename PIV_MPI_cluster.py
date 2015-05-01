@@ -49,8 +49,10 @@ def PIVCompute(frame_a, frame_b, window_size = 24, overlap = 12):
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
 
+    # load in the folder path, then grab just the top directory from the path by 
+    # splitting the string, and stripping the trailing slash
     vidpath = sys.argv[1]
-    foldername = os.getcwd().split('/')[-1]
+    foldername = vidpath.rstrip('/').split('/')[-1]
 
     print "Vidpath = " + vidpath
     print "Foldername = " + foldername
@@ -59,7 +61,7 @@ if __name__ == '__main__':
     tif_files = sorted([f for f in os.listdir(vidpath) if f.endswith('.tif')]) # Sorted is important on the cluster!
 
 # !!!! DEBUG
-    tif_files = tif_files[0:10]
+    # tif_files = tif_files[0:10]
 
 
 # Create list of file pairs to process
@@ -148,7 +150,7 @@ if __name__ == '__main__':
             pp.send(-1, proc, tag=DIE_TAG)
 
         # Package up the results to save, also save all the PIV parameters
-        sio.savemat(os.path.join(vidpath, '../' + foldername + '__.mat'),{'x':x, 'y':y, 'u':u,                                                        'v': v, 
+        sio.savemat(os.path.join(vidpath, '../' + foldername + '_CLUSTER.mat'),{'x':x, 'y':y, 'u':u,                                                        'v': v, 
                                                                     'window_size':window_size,
                                                                     'overlap':overlap})
         end_time = time.time()
